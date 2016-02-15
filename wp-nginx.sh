@@ -46,12 +46,12 @@ install(){
 
 }
 
-#if [[ $lastD -ne $currentD ]]; then
-#sudo apt-get update
-#fi
+if [[ $lastD -ne $currentD ]]; then
+sudo apt-get update
+fi
 install nginx nginx
 install mysql mysql-server
-#sudo mysql_install_db
+sudo mysql_install_db
 install php5-mysql php5-mysql
 install php5-fpm php5-fpm
 
@@ -124,7 +124,7 @@ sudo mv $wp"wp-config-sample.php" $wp"wp-config.php"
 ###
 sudo chown -R www-data:www-data /var/www/html/
 ###
-#rm -f $wp_opt
+rm -f $wp_opt
 echo "Restarting webserver"
 sleep 1
 service nginx restart
