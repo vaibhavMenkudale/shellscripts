@@ -52,7 +52,7 @@ fi
 install nginx nginx
 install mysql mysql-server
 sudo mysql_install_db
-install php5-mysql php5-mysql
+[[ ! -e /usr/share/php5/mysql/mysql.ini ]] && echo "php5-mysql Installed. Continuing..." || install php5-mysql php5-mysql
 install php5-fpm php5-fpm
 
 cp /etc/php5/fpm/php.ini /tmp/php.tmp
