@@ -121,6 +121,9 @@ echo "$(sudo sed -i -e s/database_name_here/$db/g $wp"wp-config-sample.php")"
 echo "$(sudo sed -i -e s/username_here/root/g $wp"wp-config-sample.php")"
 echo "$(sudo sed -i -e s/password_here//g $wp"wp-config-sample.php")"
 sudo mv $wp"wp-config-sample.php" $wp"wp-config.php"
+echo
+echo -e '\E[31m'"Php is interfacing with MySQL by root account and no root password is set. Consider using another account and setting a password for the account being used."
+echo -e '\E[31m' "You will need to change the password at line 121(vi +121 wp-nginx.sh) for USER and line 122(vi +122 wp-nginx.sh) for PASSWORD."
 ###
 sudo chown -R www-data:www-data /var/www/html/
 ###
