@@ -50,6 +50,8 @@ if [[ $lastD -ne $currentD ]]; then
 	sudo apt-get update
 fi
 install nginx nginx
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password password rootpassword'
+sudo debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password rootpassword'
 install mysql mysql-server
 [[ -e /usr/share/php5/mysql/mysql.ini ]] && echo -e "\e[32mphp5-mysql Installed. Continuing...\e[30m" || install php5-mysql php5-mysql
 install php5-fpm php5-fpm
@@ -143,10 +145,10 @@ cmd="create database $db"
 exitfn
 echo "$(sudo sed -i -e s/database_name_here/$db/g $wp"/wp-config-sample.php")"
 echo "$(sudo sed -i -e s/username_here/root/g $wp"/wp-config-sample.php")"
-echo "$(sudo sed -i -e s/password_here//g $wp"/wp-config-sample.php")"
+echo "$(sudo sed -i -e s/password_here/rootpassword/g $wp"/wp-config-sample.php")"
 sudo mv $wp"/wp-config-sample.php" $wp"/wp-config.php"
 echo
-echo -e "\e[31mPhp is interfacing with MySQL by root account and no root password is set. Consider using another account and setting a password for the account being used.\n"
+echo -e "\e[31mPhp is interfacing with MySQL by root account and default root password is set. Consider using another account and setting another stronger password for it.\n"
 echo -e "You will need to change the password at line 121(vi +121 wp-nginx.sh) for USER and line 122(vi +122 wp-nginx.sh) for PASSWORD.\e[30m"
 sleep 3
 ###
