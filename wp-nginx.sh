@@ -12,7 +12,6 @@ php='error_page 404 /404.html;
     location = /50x.html {
         root /usr/share/nginx/html;
     }
-
     location ~ \.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
@@ -141,7 +140,7 @@ fi
 
 db="${dName}_db"
 cmd="create database $db"
-[[ -e /var/lib/mysql/$db ]] && echo -e '\e[32m'"MySQL Database already created. Continuing...\e[30m" || mysql -uroot -h localhost -e "${cmd}"
+[[ -e /var/lib/mysql/$db ]] && echo -e '\e[32m'"MySQL Database already created. Continuing...\e[30m" || mysql -uroot -prootpassword -h localhost -e "${cmd}"
 exitfn
 echo "$(sudo sed -i -e s/database_name_here/$db/g $wp"/wp-config-sample.php")"
 echo "$(sudo sed -i -e s/username_here/root/g $wp"/wp-config-sample.php")"
