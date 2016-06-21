@@ -1,15 +1,16 @@
 #!/bin/bash
 
-#set -x
-
+exclude=""
+include=""
+expath=""
+inpath=""
 ROOT="/var/www/"
 DEST="/media/duplicity-backups"
 RES="/media/duplicity-restore"
-RES_FOLDER=$2
-RES_FILE=$2
-#RES_DAY="3D"   #restore backup to last 3day back
 
 backup_webroot(){
+
+if [[ -z "$vlevel" ]]; then vlevel=5;fi;
 cd $ROOT
 DIR="$(ls)"
 for dir in $DIR
@@ -19,12 +20,25 @@ for dir in $DIR
                 echo $ROOT$dir
                 echo "$DEST/$dir"
 	    fi
-            case "$RES_FILE" in
+
+  	    if [[ ! -z $exPATH ]] && grep -q $dir $exPATH; then
+		expath="--exclude $(grep $dir $exPATH)"
+	    else
+		expath=""
+	    fi
+
+            if [[ ! -z $inPATH ]] && grep -q $dir $inPATH; then
+                inpath="--include $(grep $dir $inPATH)"
+            else
+                inpath=""
+            fi
+
+            case "$btype" in
                 incremental)
-                     nice -n 19 duplicity incremental -v 5 --no-encryption  $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
+                     nice -n 19 duplicity incremental -v $vlevel $exclude $expath $include $inPATH --no-encryption $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
                  ;;
                 full)
-                     nice -n 19 duplicity full -v 5 --no-encryption  $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
+	             nice -n 19 duplicity full -v $vlevel --no-encryption $exclude $expath $include $inPATH $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
                  ;;
                 *)
                      do_nothing
@@ -45,6 +59,23 @@ restore_webroot(){
     [[ -d "$RES/$RES_FOLDER" ]] && rm -r "$RES/$RES_FOLDER" && mkdir -p "$RES/$RES_FOLDER"
     duplicity restore --no-encryption "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER"
 
+}
+
+include_exclude(){
+
+    if [[ ! -z "$EXCLUDE" ]]; then
+      for x in "${EXCLUDE[@]}"; do
+	eTMP="--exclude **\\$x "$eTMP
+        exclude=$eTMP
+      done
+    fi
+
+    if [[ ! -z "$INCLUDE" ]]; then
+      for x in "${INCLUDE[@]}"; do
+        iTMP="--include **\\$x "$iTMP
+        include=$iTMP
+      done
+    fi
 }
 
 #check if duplicity is installed
@@ -68,26 +99,67 @@ do_nothing()
 echo "USAGE:
   $(basename "$0") [options]
   Options:
-    backup   backup root directory
-    restore  restore to given path
+    -b   Backup webroot directory.
+    -r   Restore to given path.
+    -p	 Exclude list of directory provided by a file.
+    -e	 Exclude type of files.
+    -i	 Include list of directory provided by a file.
+    -f	 Include type of file.
+    -v	 Set verbosity level.
+    -h	 Print this help file.
+
   Commands:
-     $(basename "$0") backup incremental
-     $(basename "$0") backup full
-     $(basename "$0") restore htdocs example.com
+     $(basename "$0") -b full
+     $(basename "$0") -b incremental
+     $(basename "$0") -r /path/to/restore/to
+     $(basename "$0") -p /path/to/file/with/directory/list
+     $(basename "$0") -e *.log -e *.sql
+     $(basename "$0") -i *.html -i *.php -i *.css
+     $(basename "$0") -f /path/to/file/with/directory/list
+     $(basename "$0") -v [0-9]. Default 5 
+
+  Example:
+     $(basename "$0") -e *.log -e *.sql -e *.txt -e *.mp4 -e *.js -e *.php -e *.html -p ${HOME}/file -b full
 "
 }
 
 ### MAIN ###
 check_duplicity_installed
 
-case "$1" in
-"backup")
-    backup_webroot
-;;
-"restore")
-    restore_webroot
-;;
-*)
-    do_nothing
-;;
-esac
+[[ "$#" -eq "0" ]] && do_nothing;
+
+while getopts ":p:e:f:iv:b:r:" option; do
+  case ${option} in
+	p)
+	    exPATH=$OPTARG
+	    ;;
+        e)
+            EXCLUDE=$OPTARG
+	    include_exclude
+            ;;
+        f)
+            inPATH=$OPTARG
+            ;;
+        i)
+            INCLUDE=$OPTARG
+	    include_exclude
+            ;;
+        v)
+            vlevel=$OPTARG
+            ;;
+	b)
+	    btype=$OPTARG
+	    backup_webroot
+	    ;;
+	r)
+	    RES_FOLDER=$OPTARG
+	    restore_webroot
+	    ;;
+	h)
+	    do_nothing
+	    ;;
+	*)
+	    do_nothing
+	    ;;
+  esac
+done
