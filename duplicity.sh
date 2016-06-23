@@ -32,10 +32,9 @@ for dir in $DIR
             else
                 inpath=""
             fi
-
             case "$btype" in
                 incremental)
-                     nice -n 19 duplicity incremental -v $vlevel $exclude $expath $include $inPATH --no-encryption $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
+                     nice -n 19 duplicity -v $vlevel $exclude $expath $include $inPATH --no-encryption $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
                  ;;
                 full)
 	             nice -n 19 duplicity full -v $vlevel --no-encryption $exclude $expath $include $inPATH $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
@@ -56,7 +55,8 @@ for dir in $DIR
 }
 
 restore_webroot(){
-    [[ -d "$RES/$RES_FOLDER" ]] && rm -r "$RES/$RES_FOLDER" && mkdir -p "$RES/$RES_FOLDER"
+    [[ -d "$RES/$RES_FOLDER" ]] && rm -r "$RES/$RES_FOLDER"
+    mkdir -p "$RES/$RES_FOLDER"
     duplicity restore --no-encryption "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER"
 
 }
@@ -100,7 +100,7 @@ echo "USAGE:
   $(basename "$0") [options]
   Options:
     -b   Backup webroot directory.
-    -r   Restore to given path.
+    -r   Restore the given site.
     -p	 Exclude list of directory provided by a file.
     -e	 Exclude type of files.
     -i	 Include list of directory provided by a file.
@@ -111,7 +111,7 @@ echo "USAGE:
   Commands:
      $(basename "$0") -b full
      $(basename "$0") -b incremental
-     $(basename "$0") -r /path/to/restore/to
+     $(basename "$0") -r name of site to be restored
      $(basename "$0") -p /path/to/file/with/directory/list
      $(basename "$0") -e *.log -e *.sql
      $(basename "$0") -i *.html -i *.php -i *.css
@@ -148,10 +148,12 @@ while getopts ":p:e:f:iv:b:r:" option; do
             vlevel=$OPTARG
             ;;
 	b)
+	    echo " " > /var/log/duplicity-backup.log
 	    btype=$OPTARG
 	    backup_webroot
 	    ;;
 	r)
+            echo " " > /var/log/duplicity-backup.log
 	    RES_FOLDER=$OPTARG
 	    restore_webroot
 	    ;;
