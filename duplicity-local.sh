@@ -103,11 +103,10 @@ dpkg --get-selections | grep -v deinstall | grep duplicity &> /dev/null
 
 verify(){
 
-	if [[ -z "$vlevel" ]]; then vlevel=5;fi;
 	cd $ROOT
 	DIR="$(ls)"
 	for dir in $DIR; do
-		duplicity verify -v $vlevel --no-encryption "file://$DEST/$dir" $dir
+		duplicity verify --no-encryption "file://$DEST/$dir" $dir
 	done
 }
 
@@ -116,7 +115,7 @@ list_backups(){
         cd $ROOT
         DIR="$(ls)"
         for dir in $DIR; do
-                duplicity collection-status "file://$DEST/dir"
+                duplicity collection-status "file://$DEST/$dir"
         done
 
 }
@@ -161,10 +160,10 @@ check_duplicity_installed
 
 [[ "$#" -eq "0" ]] && do_nothing;
 
-while getopts "l:p:e:f:iv:c:b:r:" option; do
+while getopts "p:e:f:cli:v:b:r:" option; do
   case ${option} in
 	l)
-	    list_backup
+	    list_backups
 	    ;;
 	p)
 	    exPATH=$OPTARG
