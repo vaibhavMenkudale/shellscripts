@@ -33,7 +33,7 @@ for dir in $DIR
                 inpath=""
             fi
 
-	    nice -n 19 duplicity remove-older-than 1M --no-encryption -v $vlevel "file:///"$DEST/$dir
+	    nice -n 19 duplicity remove-older-than 1M --no-encryption -v $vlevel "file://$DEST/$dir"
 
             case "$btype" in
                 incremental)
@@ -104,11 +104,21 @@ dpkg --get-selections | grep -v deinstall | grep duplicity &> /dev/null
 verify(){
 
 	if [[ -z "$vlevel" ]]; then vlevel=5;fi;
-	cd $DEST
+	cd $ROOT
 	DIR="$(ls)"
 	for dir in $DIR; do
-		nice -n 19 duplicity verify -v $vlevel --no-encryption "file:///"$ROOT/$dir $dir
+		duplicity verify -v $vlevel --no-encryption "file://$DEST/$dir" $dir
 	done
+}
+
+list_backups(){
+
+        cd $ROOT
+        DIR="$(ls)"
+        for dir in $DIR; do
+                duplicity collection-status "file://$DEST/dir"
+        done
+
 }
 
 do_nothing(){
@@ -123,6 +133,8 @@ echo "USAGE:
     -i	 Include type of file.
     -f	 Include list of directory provided by a file.
     -v	 Set verbosity level.
+    -l	 List all backups.
+    -c	 Check for all backup integrity.
     -h	 Print this help file.
 
   Commands:
@@ -133,10 +145,14 @@ echo "USAGE:
      $(basename "$0") -e *.log -e *.sql
      $(basename "$0") -i *.html -i *.php -i *.css
      $(basename "$0") -f /path/to/file/with/directory/list
-     $(basename "$0") -v [0-9]. Default 5 
+     $(basename "$0") -v [0-9]. Default 5
+     $(basename "$0") -l
+     $(basename "$0") -c 
 
   Example:
      $(basename "$0") -e *.log -e *.sql -e *.txt -e *.mp4 -e *.js -e *.php -e *.html -p ${HOME}/file -b full
+     $(basename "$0") -l
+     $(basename "$0") -c
 "
 }
 
@@ -145,8 +161,11 @@ check_duplicity_installed
 
 [[ "$#" -eq "0" ]] && do_nothing;
 
-while getopts ":p:e:f:iv:c:b:r:" option; do
+while getopts "l:p:e:f:iv:c:b:r:" option; do
   case ${option} in
+	l)
+	    list_backup
+	    ;;
 	p)
 	    exPATH=$OPTARG
 	    ;;
