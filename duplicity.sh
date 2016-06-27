@@ -32,6 +32,9 @@ for dir in $DIR
             else
                 inpath=""
             fi
+
+	    nice -n 19 duplicity remove-older-than 1M --no-encryption -v $vlevel "file:///"$DEST/$dir
+
             case "$btype" in
                 incremental)
                      nice -n 19 duplicity -v $vlevel $exclude $expath $include $inPATH --no-encryption $ROOT$dir "file://$DEST/$dir" | tee -a /var/log/duplicity-backup.log
@@ -55,9 +58,11 @@ for dir in $DIR
 }
 
 restore_webroot(){
+
     [[ -d "$RES/$RES_FOLDER" ]] && rm -r "$RES/$RES_FOLDER"
     mkdir -p "$RES/$RES_FOLDER"
-    duplicity restore --no-encryption "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER"
+    if [[ -z "$vlevel" ]]; then vlevel=5;fi;
+    duplicity restore --no-encryption -v $vlevel "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER"
 
 }
 
@@ -81,8 +86,10 @@ include_exclude(){
 #check if duplicity is installed
 #Install Duplicity if not installed
 check_duplicity_installed(){
+
 dpkg --get-selections | grep -v deinstall | grep duplicity &> /dev/null
-if [ $? -ne 0 ]; then
+
+    if [ $? -ne 0 ]; then
         echo "Duplicity not found on your system. Installing ..."
         apt-add-repository ppa:duplicity-team/ppa
         apt-get update
@@ -91,11 +98,21 @@ if [ $? -ne 0 ]; then
         pip install boto
         apt-get install -y python-paramiko
         apt-get install -y cpulimit
-fi
+    fi
 }
 
-do_nothing()
-{
+verify(){
+
+	if [[ -z "$vlevel" ]]; then vlevel=5;fi;
+	cd $DEST
+	DIR="$(ls)"
+	for dir in $DIR; do
+		nice -n 19 duplicity verify -v $vlevel --no-encryption "file:///"$ROOT/$dir $dir
+	done
+}
+
+do_nothing(){
+
 echo "USAGE:
   $(basename "$0") [options]
   Options:
@@ -103,8 +120,8 @@ echo "USAGE:
     -r   Restore the given site.
     -p	 Exclude list of directory provided by a file.
     -e	 Exclude type of files.
-    -i	 Include list of directory provided by a file.
-    -f	 Include type of file.
+    -i	 Include type of file.
+    -f	 Include list of directory provided by a file.
     -v	 Set verbosity level.
     -h	 Print this help file.
 
@@ -128,7 +145,7 @@ check_duplicity_installed
 
 [[ "$#" -eq "0" ]] && do_nothing;
 
-while getopts ":p:e:f:iv:b:r:" option; do
+while getopts ":p:e:f:iv:c:b:r:" option; do
   case ${option} in
 	p)
 	    exPATH=$OPTARG
@@ -147,13 +164,16 @@ while getopts ":p:e:f:iv:b:r:" option; do
         v)
             vlevel=$OPTARG
             ;;
+	c)
+	    verify
+	    ;;
 	b)
-	    echo " " > /var/log/duplicity-backup.log
+	    echo $(date) > /var/log/duplicity-backup.log
 	    btype=$OPTARG
 	    backup_webroot
 	    ;;
 	r)
-            echo " " > /var/log/duplicity-backup.log
+            echo $(date) > /var/log/duplicity-backup.log
 	    RES_FOLDER=$OPTARG
 	    restore_webroot
 	    ;;
