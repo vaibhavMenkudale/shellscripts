@@ -4,6 +4,7 @@ exclude=""
 include=""
 expath=""
 inpath=""
+restDay=""
 ROOT="/var/www/"
 DEST="/media/duplicity-backups"
 RES="/media/duplicity-restore"
@@ -22,13 +23,13 @@ for dir in $DIR
 	    fi
 
   	    if [[ ! -z $exPATH ]] && grep -q $dir $exPATH; then
-		expath="--exclude $(grep $dir $exPATH)"
+		expath="$(grep $dir $exPATH)"
 	    else
 		expath=""
 	    fi
 
             if [[ ! -z $inPATH ]] && grep -q $dir $inPATH; then
-                inpath="--include $(grep $dir $inPATH)"
+                inpath="$(grep $dir $inPATH)"
             else
                 inpath=""
             fi
@@ -62,7 +63,9 @@ restore_webroot(){
     [[ -d "$RES/$RES_FOLDER" ]] && rm -r "$RES/$RES_FOLDER"
     mkdir -p "$RES/$RES_FOLDER"
     if [[ -z "$vlevel" ]]; then vlevel=5;fi;
-    duplicity restore --no-encryption -v $vlevel "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER"
+    if [[ -z "$restDay" ]]; then duplicity restore --no-encryption -v $vlevel "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER";
+    else duplicity restore -t $restDay --no-encryption -v $vlevel "file://$DEST/$RES_FOLDER" "$RES/$RES_FOLDER";
+    fi
 
 }
 
@@ -134,6 +137,7 @@ echo "USAGE:
     -v	 Set verbosity level.
     -l	 List all backups.
     -c	 Check for all backup integrity.
+    -d	 Restore according to the given time.
     -h	 Print this help file.
 
   Commands:
@@ -147,11 +151,14 @@ echo "USAGE:
      $(basename "$0") -v [0-9]. Default 5
      $(basename "$0") -l
      $(basename "$0") -c 
+     $(basename "$0") -d Time format. To know allowed time format, checkout: http://duplicity.nongnu.org/duplicity.1.html#toc8
 
   Example:
      $(basename "$0") -e *.log -e *.sql -e *.txt -e *.mp4 -e *.js -e *.php -e *.html -p ${HOME}/file -b full
      $(basename "$0") -l
      $(basename "$0") -c
+     $(basename "$0") -r
+     $(basename "$0") -d 1D -r
 "
 }
 
@@ -160,7 +167,7 @@ check_duplicity_installed
 
 [[ "$#" -eq "0" ]] && do_nothing;
 
-while getopts "p:e:f:cli:v:b:r:" option; do
+while getopts "p:e:f:cli:v:d:b:r:" option; do
   case ${option} in
 	l)
 	    list_backups
@@ -184,6 +191,9 @@ while getopts "p:e:f:cli:v:b:r:" option; do
             ;;
 	c)
 	    verify
+	    ;;
+	d)
+	    restDay=$OPTARG
 	    ;;
 	b)
 	    echo $(date) > /var/log/duplicity-backup.log
